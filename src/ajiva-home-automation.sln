@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "web-ui", "web-ui\web-ui.csproj", "{BDD64B60-F322-4099-99EE-D1917C99C2C8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "web-ui", "web-ui\web-ui.csproj", "{B9F7AB28-E997-4972-A6D1-1BD4C9E289CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,9 +14,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9F7AB28-E997-4972-A6D1-1BD4C9E289CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9F7AB28-E997-4972-A6D1-1BD4C9E289CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9F7AB28-E997-4972-A6D1-1BD4C9E289CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9F7AB28-E997-4972-A6D1-1BD4C9E289CE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

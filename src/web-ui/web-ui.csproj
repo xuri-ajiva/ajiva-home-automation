@@ -4,7 +4,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>aspnet-web_ui-9ADD965B-D891-422B-B183-4EA83217EB51</UserSecretsId>
+        <UserSecretsId>aspnet-web_ui-0AC355D7-4573-4D97-B30F-A412809895C3</UserSecretsId>
         <RootNamespace>web_ui</RootNamespace>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
