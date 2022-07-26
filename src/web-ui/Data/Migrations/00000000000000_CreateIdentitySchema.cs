@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace ajiva_home_automation.web_ui.Data.Migrations
+namespace web_ui.Data.Migrations
 {
     public partial class CreateIdentitySchema : Migration
     {
@@ -9,8 +9,7 @@ namespace ajiva_home_automation.web_ui.Data.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<string>(nullable: false),
                     Name = table.Column<string>(maxLength: 256, nullable: true),
                     NormalizedName = table.Column<string>(maxLength: 256, nullable: true),
@@ -20,8 +19,7 @@ namespace ajiva_home_automation.web_ui.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUsers",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<string>(nullable: false),
                     UserName = table.Column<string>(maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(maxLength: 256, nullable: true),
@@ -42,8 +40,7 @@ namespace ajiva_home_automation.web_ui.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     RoleId = table.Column<string>(nullable: false),
@@ -63,8 +60,7 @@ namespace ajiva_home_automation.web_ui.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserClaims",
-                columns: table => new
-                {
+                columns: table => new {
                     Id = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     UserId = table.Column<string>(nullable: false),
@@ -84,8 +80,7 @@ namespace ajiva_home_automation.web_ui.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserLogins",
-                columns: table => new
-                {
+                columns: table => new {
                     LoginProvider = table.Column<string>(maxLength: 128, nullable: false),
                     ProviderKey = table.Column<string>(maxLength: 128, nullable: false),
                     ProviderDisplayName = table.Column<string>(nullable: true),
@@ -104,8 +99,7 @@ namespace ajiva_home_automation.web_ui.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserRoles",
-                columns: table => new
-                {
+                columns: table => new {
                     UserId = table.Column<string>(nullable: false),
                     RoleId = table.Column<string>(nullable: false)
                 },
@@ -128,8 +122,7 @@ namespace ajiva_home_automation.web_ui.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserTokens",
-                columns: table => new
-                {
+                columns: table => new {
                     UserId = table.Column<string>(nullable: false),
                     LoginProvider = table.Column<string>(maxLength: 128, nullable: false),
                     Name = table.Column<string>(maxLength: 128, nullable: false),

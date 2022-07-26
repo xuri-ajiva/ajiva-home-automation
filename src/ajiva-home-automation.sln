@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "web-ui", "web-ui\ajiva-home-automation.web-ui.csproj", "{91C0FF63-4F9C-4A5B-8C9B-25E489F70BEE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "web-ui", "web-ui\web-ui.csproj", "{BDD64B60-F322-4099-99EE-D1917C99C2C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,9 +14,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{91C0FF63-4F9C-4A5B-8C9B-25E489F70BEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{91C0FF63-4F9C-4A5B-8C9B-25E489F70BEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{91C0FF63-4F9C-4A5B-8C9B-25E489F70BEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{91C0FF63-4F9C-4A5B-8C9B-25E489F70BEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDD64B60-F322-4099-99EE-D1917C99C2C8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

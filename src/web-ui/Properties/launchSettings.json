@@ -3,16 +3,16 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:44334",
-      "sslPort": 44366
+      "applicationUrl": "http://localhost:36113",
+      "sslPort": 44353
     }
   },
   "profiles": {
-    "ajiva_home_automation.web_ui": {
+    "web-ui": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7201;http://localhost:5201",
+      "applicationUrl": "https://localhost:7163;http://localhost:5163",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
