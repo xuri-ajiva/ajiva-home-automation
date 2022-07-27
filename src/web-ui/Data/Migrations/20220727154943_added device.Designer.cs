@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using ajiva_home_automation.web_ui.Data;
+using web_ui.Data;
 
 #nullable disable
 
-namespace ajiva_home_automation.web_ui.Data.Migrations
+namespace web_ui.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20220727154943_added device")]

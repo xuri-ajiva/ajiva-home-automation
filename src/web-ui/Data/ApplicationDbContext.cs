@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace ajiva_home_automation.web_ui.Data;
+namespace web_ui.Data;
 
 public class ApplicationDbContext : IdentityDbContext
 {

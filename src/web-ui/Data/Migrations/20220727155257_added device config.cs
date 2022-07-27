@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace ajiva_home_automation.web_ui.Data.Migrations
+namespace web_ui.Data.Migrations
 {
     public partial class addeddeviceconfig : Migration
     {

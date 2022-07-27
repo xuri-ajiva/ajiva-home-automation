@@ -8,7 +8,7 @@ using ajiva_home_automation.web_ui.Data;
 
 #nullable disable
 
-namespace ajiva_home_automation.web_ui.Data.Migrations
+namespace web_ui.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20220727155257_added device config")]
