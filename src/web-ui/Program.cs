@@ -20,10 +20,13 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddAntDesign();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 builder.Services.AddScoped<ScanService>();
+builder.Services.AddScoped<DeviceService>();
 
 var app = builder.Build();
 
 var scope = app.Services.CreateScope();
+var appDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+await appDbContext.Database.MigrateAsync();
 var scanner = scope.ServiceProvider.GetRequiredService<ScanService>();
 var res = await scanner.AvailableDevices(IPAddress.Parse("192.168.2.0"), IPAddress.Parse("192.168.2.255"));
 

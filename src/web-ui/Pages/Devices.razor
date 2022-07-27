@@ -1,0 +1,50 @@
+﻿@page "/Devices"   
+@using web_ui.Services
+@using web_ui.Data
+@using AntDesign
+@using System.Text.Json
+
+@inject ConfirmService confirmService
+@inject DeviceService deviceService 
+@inject NavigationManager _navigationManager
+
+@if (_devices is null)
+{
+    <AntDesign.Button OnClick="LoadDevices">Load Devices</AntDesign.Button>
+    <AntDesign.Button OnClick="FetchDevices">Fetch Devices</AntDesign.Button>
+    <Input @bind-Value="_from" Placeholder="From"/>
+    <Input @bind-Value="_to" Placeholder="To"/>
+}
+else
+{
+    <Table TItem="Device"
+           DataSource="_devices"
+           Bordered>
+        <ChildContent>
+            <Column @bind-Field="context.Name"></Column>
+            <Column @bind-Field="context.Description"></Column>
+            <Column @bind-Field="context.DeviceId"></Column>
+        </ChildContent>
+    </Table>
+}
+
+
+@code {
+
+    List<Device>? _devices;
+    string _from;
+    string _to;
+
+    private async Task LoadDevices()
+    {
+        _devices = await deviceService.GetDevices();
+    }
+
+    private async Task FetchDevices()
+    {
+        var found = await deviceService.IndexNetworkDevices(_from, _to);
+        await confirmService.Show(JsonSerializer.Serialize(found), "test");
+        await LoadDevices();
+    }
+
+}

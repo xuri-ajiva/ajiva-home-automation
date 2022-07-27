@@ -19,8 +19,8 @@ public class Device
     public int Id { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
-    public string DeiveId { get; set; }
-    public int IPAddress { get; set; }
+    public string DeviceId { get; set; }
+    public byte[] IPAddress { get; set; }
     public DeviceConfig DeviceConfig { get; set; }
 }
 
