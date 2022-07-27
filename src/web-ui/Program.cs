@@ -1,11 +1,10 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
+using System.Net;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.EntityFrameworkCore;
 using web_ui.Areas.Identity;
 using web_ui.Data;
+using web_ui.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +19,18 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddAntDesign();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+builder.Services.AddScoped<ScanService>();
 
 var app = builder.Build();
+
+var scope = app.Services.CreateScope();
+var scanner = scope.ServiceProvider.GetRequiredService<ScanService>();
+var res = await scanner.AvailableDevices(IPAddress.Parse("192.168.2.0"), IPAddress.Parse("192.168.2.255"));
+
+foreach (var r in res)
+{
+    Console.WriteLine(r);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
