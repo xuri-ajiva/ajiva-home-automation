@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "webserver.hpp"
+#include "info.hpp"
 
 #define LED 2
 
@@ -7,6 +8,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   pinMode(LED, OUTPUT);
+  printInfo();
   setupServer();
 }
 

@@ -2,6 +2,9 @@
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
+#include "info.hpp"
+#include "log.hpp"
+#include "specs.h"
 
 // Set web server port number to 80
 AsyncWebServer server(80);
@@ -26,29 +29,29 @@ inline void setupServer()
     // Initialize SPIFFS
     if (!SPIFFS.begin(true))
     {
-        Serial.println("An Error has occurred while mounting SPIFFS");
+        logger.println("An Error has occurred while mounting SPIFFS");
         return;
     }
 
-    Serial.println("Setup WiFi");
+    logger.println("Setup WiFi");
     // load ssid and password from SPIFFS
     String ssid;
     if (!readFile("/wifi/ssid.key", ssid))
     {
-        Serial.println("SSID file not found");
+        logger.println("SSID file not found");
         return;
     }
 
     String password;
     if (!readFile("/wifi/password.key", password))
     {
-        Serial.println("Password file not found");
+        logger.println("Password file not found");
         return;
     }
 
     // Connect to Wi-Fi network with SSID and password
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
+    logger.print("Connecting to ");
+    logger.println(ssid);
     WiFi.begin(ssid.c_str(), password.c_str());
     while (WiFi.status() != WL_CONNECTED)
     {
@@ -62,17 +65,26 @@ inline void setupServer()
         WiFi.reconnect();
     }
     // Print local IP address and start web server
-    Serial.println("");
-    Serial.println("WiFi connected.");
-    Serial.print("IP address: http://");
-    Serial.print(WiFi.localIP());
-    Serial.print(" (http://");
-    Serial.print(WiFi.getHostname());
-    Serial.println(")");
+    logger.println("");
+    logger.println("WiFi connected.");
+    logger.print("IP address: http://");
+    logger.print(WiFi.localIP());
+    logger.print(" (http://");
+    logger.print(WiFi.getHostname());
+    logger.println(")");
 
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
               { request->send(SPIFFS, "/index.html"); });
+
+    server.on("/api/info", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send(200, "application/json", String("{ \"chipId\" : \"") + chipId() + "\", \"version\" : \"" VERSION "\" }"); });
+
+    server.on("/api/device/id", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send(200, "text/plain", chipId()); });
+
+    server.on("/api/logs", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send(200, "text/plain", logger.Data()); });
 
     server.begin();
 }
