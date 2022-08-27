@@ -1,92 +1,98 @@
 #pragma once
 
 // Import required libraries
-#include "WiFi.h"
 #include "ESPAsyncWebServer.h"
-#include "SPIFFS.h"
 #include "info.hpp"
 #include "log.hpp"
 #include "specs.h"
-
+#include "config.hpp"
+#include "network.hpp"
 
 class WebserverWrapper {
     bool m_init;
-// Set web server port number to 80
-AsyncWebServer server(80);
+    // Set web server port number to 80
+    AsyncWebServer server = AsyncWebServer(80);
 
-inline bool readFile(const char *path, String &content)
-{
-    if (!SPIFFS.exists(path))
-        return false;
-    // Open file for reading
-    File file = SPIFFS.open(path, "r");
-    if (!file)
-        return false;
-    // Read content from file
-    content = file.readString();
-    // Close file
-    file.close();
-    return true;
-}
-
-inline void setupServer()
-{
-    // Initialize SPIFFS
-    if (!SPIFFS.begin(true))
-    {
-        logger.println("An Error has occurred while mounting SPIFFS");
-        return;
-    }
-
-    logger.println("Setup WiFi");
-    // load ssid and password from SPIFFS
-    String ssid;
-    if (!readFile("/wifi/ssid.key", ssid))
-    {
-        logger.println("SSID file not found");
-        return;
-    }
-
-    String password;
-    if (!readFile("/wifi/password.key", password))
-    {
-        logger.println("Password file not found");
-        return;
-    }
-
-    // Connect to Wi-Fi network with SSID and password
-    logger.print("Connecting to ");
-    logger.println(ssid);
-    WiFi.begin(ssid.c_str(), password.c_str());
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(1000);
-        Serial.print(WiFi.status());
-        for (int i = 0; i < 20 && WiFi.status() != WL_CONNECTED; i++)
-        {
-            Serial.print(".");
-            delay(100);
+    void LoadFromConfig() {
+        for (auto &item: config.ioData) {
+            switch (item.getMode()) {
+                case OUTPUT: {
+                    String url = String("/api/io/device/") + item.getName();
+                    server.on(url.c_str(), HTTP_POST, HandleStateChange(item));
+                    break;
+                }
+                case INPUT:
+                    logger.println("Input not implemented yet");
+                    break;
+                default:
+                    logger.println("Unknown mode: " + String(item.getMode()));
+                    break;
+            }
         }
-        WiFi.reconnect();
+        server.on("/api/io/list", HTTP_GET, [](AsyncWebServerRequest *request) {
+            String urls = "{\"devices\":[";
+            bool first = true;
+            for (auto &item: config.ioData) {
+                if (first) {
+                    first = false;
+                } else {
+                    urls += ",";
+                }
+                urls += "\"";
+                urls += item.getName();
+                urls += "\"";
+            }
+            urls += "]}";
+            request->send(200, "application/json", urls);
+        });
     }
-    // Print local IP address and start web server
-    logger.println("");
-    logger.println("WiFi connected.");
-    logger.print("IP address: http://");
-    logger.print(WiFi.localIP());
-    logger.print(" (http://");
-    logger.print(WiFi.getHostname());
-    logger.println(")");
 
-    // Route for root / web page
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-              { request->send(SPIFFS, "/index.html"); });
+    static ArRequestHandlerFunction HandleStateChange(IoData &item) {
+        return [&item](AsyncWebServerRequest *request) {
+            auto state = request->getParam("Write");
+            if (state->value() == "HIGH" || state->value() == "1") {
+                item.Write(HIGH);
+            } else if (state->value() == "LOW" || state->value() == "0") {
+                item.Write(LOW);
+            } else {
+                request->send(400, "text/plain", "Invalid state");
+            }
+            request->send(200, "text/plain", "OK");
+        };
+    }
 
-    server.on("/api/info", HTTP_GET, [](AsyncWebServerRequest *request)
-              { request->send(200, "application/json", String("{ \"chipId\" : \"") + chipId() + "\", \"version\" : \"" VERSION "\" }"); });
+public:
+    inline bool Init() {
+        if (m_init)
+            return true;
+        if (!network.Init()) {
+            logger.println("[WEBSERVER] Network not initialized");
+            return false;
+        }
 
-    server.on("/api/device/id", HTTP_GET, [](AsyncWebServerRequest *request)
-              { request->send(200, "text/plain", chipId()); });
+        logger.print("IP address: http://");
+        logger.print(WiFi.localIP());
+        logger.print(" (http://");
+        logger.print(WiFi.getHostname());
+        logger.println(")");
+
+        // Not Found
+        server.onNotFound([](AsyncWebServerRequest *request) { request->send(404, "text/plain", "Not found"); });
+
+        // Route for root / web page
+        // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { request->send(SPIFFS, "/index.html"); });
+        server.serveStatic("/", SPIFFS, "/wwwroot", "max-age=86400").setDefaultFile("index.html");
+
+        server.on("/api/info", HTTP_GET, [](AsyncWebServerRequest *request) {
+            request->send(200, "application/json",
+                          String(R"({ "chipId" : ")") + chipId() + "\", \"version\" : \"" VERSION "\" }");
+        });
+
+        server.on("/api/device/id", HTTP_GET,
+                  [](AsyncWebServerRequest *request) { request->send(200, "text/plain", chipId()); });
+
+        server.on("/api/logs", HTTP_GET,
+                  [](AsyncWebServerRequest *request) { request->send(200, "text/plain", logger.Data()); });
 
         server.on("/test", HTTP_GET,
                   [](AsyncWebServerRequest *request) { request->send(200, "text/plain", "working :)"); });
