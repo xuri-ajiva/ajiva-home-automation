@@ -1,3 +1,5 @@
+#pragma once
+
 // Import required libraries
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
@@ -6,6 +8,9 @@
 #include "log.hpp"
 #include "specs.h"
 
+
+class WebserverWrapper {
+    bool m_init;
 // Set web server port number to 80
 AsyncWebServer server(80);
 
@@ -83,12 +88,12 @@ inline void setupServer()
     server.on("/api/device/id", HTTP_GET, [](AsyncWebServerRequest *request)
               { request->send(200, "text/plain", chipId()); });
 
-    server.on("/api/logs", HTTP_GET, [](AsyncWebServerRequest *request)
-              { request->send(200, "text/plain", logger.Data()); });
+        server.on("/test", HTTP_GET,
+                  [](AsyncWebServerRequest *request) { request->send(200, "text/plain", "working :)"); });
 
-    server.begin();
-}
+        LoadFromConfig();
 
-inline void runServer()
-{
-}
+        server.begin();
+        return m_init = true;
+    }
+} webserver;
