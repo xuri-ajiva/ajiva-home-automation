@@ -17,14 +17,14 @@ void printInfo()
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
 
-    logger.println("Hardware info");
-    logger.printf("%d cores Wifi %s%s\n", chip_info.cores, (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+    logger.println("[INFO] Hardware info");
+    logger.printf("[INFO] %d cores Wifi %s%s\n", chip_info.cores, (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
                   (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
-    logger.printf("Silicon revision: %d\n", chip_info.revision);
-    logger.printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
+    logger.printf("[INFO] Silicon revision: %d\n", chip_info.revision);
+    logger.printf("[INFO] %dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
                   (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embeded" : "external");
 
     // get chip id
-    logger.printf("Chip id: %s\n", chipId().c_str());
-    logger.println("Version: " VERSION);
+    logger.printf("[INFO] Chip id: %s\n", chipId().c_str());
+    logger.println("[INFO] Version: " VERSION);
 }
