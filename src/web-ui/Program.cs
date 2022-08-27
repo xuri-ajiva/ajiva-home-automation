@@ -21,19 +21,13 @@ builder.Services.AddAntDesign();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 builder.Services.AddScoped<ScanService>();
 builder.Services.AddScoped<DeviceService>();
+builder.Services.AddHostedService<BackgroundScanService>();
 
 var app = builder.Build();
 
 var scope = app.Services.CreateScope();
 var appDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 await appDbContext.Database.MigrateAsync();
-var scanner = scope.ServiceProvider.GetRequiredService<ScanService>();
-var res = await scanner.AvailableDevices(IPAddress.Parse("192.168.2.0"), IPAddress.Parse("192.168.2.255"));
-
-foreach (var r in res)
-{
-    Console.WriteLine(r);
-}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -1,0 +1,53 @@
+﻿@page "/home"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using web_ui.Data
+@using web_ui.Services
+@inject DeviceService DeviceService 
+
+
+<CardGrid>
+    @foreach (var deviceId in _config.DeteiledDevices)
+    {
+        <DeviceView DeviceId="@deviceId"></DeviceView>
+    }
+</CardGrid>
+<Divider></Divider>
+
+<Devices></Devices>
+
+@code {
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        _devices = await DeviceService.GetDevices();
+        await base.OnInitializedAsync();
+    /*var result = await ProtectedSessionStore.GetAsync<HomeConfig>(HomeConfig.Key);
+        if (result.Success)
+        {
+            _config = result.Value;
+        else
+        }*/
+        {
+            _config = new HomeConfig();
+            _config.DeteiledDevices
+                .AddRange(_devices.Select(x => x.DeviceId));
+        }
+
+        await SaveConfig();
+    }
+
+    private async Task SaveConfig()
+    {
+    //await ProtectedSessionStore.SetAsync(HomeConfig.Key, _config);
+    }
+
+    public class HomeConfig
+    {
+        public const string Key = nameof(HomeConfig) + "-store-key";
+        public List<string> DeteiledDevices { get; set; } = new List<string>();
+    }
+
+    private HomeConfig _config = null!;
+    private List<Device> _devices = null!;
+}

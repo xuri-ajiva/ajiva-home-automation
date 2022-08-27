@@ -22,6 +22,9 @@ public class Device
     public string DeviceId { get; set; }
     public byte[] IPAddress { get; set; }
     public DeviceConfig DeviceConfig { get; set; }
+    public string Version { get; set; }
+    public DateTime LastSeen { get; set; }
+    public DateTime Added { get; set; }
 }
 
 public class DeviceConfig

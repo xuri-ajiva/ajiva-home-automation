@@ -1,0 +1,55 @@
+﻿@page "/NetworkScan"
+@using web_ui.Services 
+
+@inject ScanService ScanService
+
+@if (_loading)
+{
+    <Spin Spinning="_loading">
+        <Alert
+            Message="Loading devices..."
+            Description="Waiting for scanning to complete..."
+            Type="info"/>
+    </Spin>
+}
+else
+{
+    <AntDesign.Button OnClick="LoadDevices">Update Devices</AntDesign.Button>
+    <Divider/>
+    <Table TItem="NetworkDevice"
+           DataSource="_devices"
+           Size="TableSize.Small"
+           PageSize="50"
+           Bordered>
+        <ChildContent>
+            <Column Field="context.Address" Sortable Filterable></Column>
+            <Column Field="context.HostName" Sortable Filterable></Column>
+            <Column Field="context.RoundtripTime" Sortable Filterable></Column>
+        </ChildContent>
+    </Table>
+}
+
+@code {
+
+    List<NetworkDevice>? _devices;
+    HashSet<string> _editing = new();
+
+    private async Task LoadDevices()
+    {
+        _devices = await ScanService.ScanNetwork();
+        _editing.Clear();
+        StateHasChanged();
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LoadDevices();
+    }
+    
+
+    private bool _loading;
+
+
+}

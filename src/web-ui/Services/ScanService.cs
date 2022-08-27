@@ -9,46 +9,60 @@ namespace web_ui.Services;
 public class ScanService
 {
     private ILogger<ScanService> _logger;
+    private readonly IConfiguration _configuration;
+    private byte[] start;
+    private byte[] end;
 
-    public ScanService(ILogger<ScanService> logger)
+    public ScanService(ILogger<ScanService> logger, IConfiguration configuration)
     {
         _logger = logger;
+        _configuration = configuration.GetSection("Scan");
+        start = _configuration["Start"].Split('.').Select(byte.Parse).ToArray();
+        end = _configuration["End"].Split('.').Select(byte.Parse).ToArray();
     }
 
-    public async Task<List<DeviceInfo>> AvailableDevices(IPAddress from, IPAddress to)
+    public async Task<List<DeviceInfo>> AvailableDevices(Action<double>? updateProgress = null)
     {
         var devices = new List<DeviceInfo>();
-        //ping all IP addresses in the range and add them to the list
 
-        var start = from.GetAddressBytes();
-        var end = to.GetAddressBytes();
+        async Task NewMethod(byte i, byte j, byte k, byte count, byte s)
+        {
+            var tasks = new Task[count];
+            byte complete = 0;
+            for (var l = 0; l < tasks.Length; l++)
+            {
+                var l1 = l + s;
+                tasks[l] = Task.Run(async () =>
+                {
+                    var ip = new IPAddress(new[] { i, j, k, (byte)l1 });
+                    if (await GetDeviceInfo(ip) is { } info)
+                        devices.Add(info);
+                    complete++;
+                    updateProgress?.Invoke(complete / (double)tasks.Length);
+                });
+            }
+            await Task.WhenAll(tasks);
+        }
 
+        await AvailableDevices(NewMethod);
+
+        return devices;
+    }
+
+    public delegate Task ScanTask(byte i, byte j, byte k, byte count, byte start);
+
+    public async Task AvailableDevices(ScanTask scanner)
+    {
         for (var i = start[0]; i <= end[0]; i++)
         {
             for (var j = start[1]; j <= end[1]; j++)
             {
                 for (var k = start[2]; k <= end[2]; k++)
                 {
-                    var i1 = i;
-                    var j1 = j;
-                    var k1 = k;
-                    var tasks = new Task[end[3] - start[3]];
-                    for (var l = 0; l < tasks.Length; l++)
-                    {
-                        var l1 = l + start[3];
-                        tasks[l] = Task.Run(async () =>
-                        {
-                            var ip = new IPAddress(new[] { i1, j1, k1, (byte)l1 });
-                            if (await GetDeviceInfo(ip) is { } info)
-                                devices.Add(info);
-                        });
-                    }
-                    await Task.WhenAll(tasks);
+                    await scanner(i, j, k, (byte)(end[3] - start[3]), start[3]);
                 }
             }
         }
-
-        return devices;
     }
 
     public async Task<DeviceInfo?> GetDeviceInfo(IPAddress address)
@@ -95,9 +109,51 @@ public class ScanService
         }
         return null;
     }
+
+    public async Task<List<NetworkDevice>?> ScanNetwork()
+    {
+        var devices = new List<NetworkDevice>();
+
+        async Task NewMethod(byte i, byte j, byte k, byte count, byte s)
+        {
+            var tasks = new Task[count];
+            for (var l = 0; l < tasks.Length; l++)
+            {
+                var l1 = l + s;
+                tasks[l] = Task.Run(async () =>
+                {
+                    var ip = new IPAddress(new[] { i, j, k, (byte)l1 });
+                    var reply = await new Ping().SendPingAsync(ip);
+                    if (reply.Status == IPStatus.Success)
+                    {
+                        //get device name
+                        string hostname = "";
+                        try
+                        {
+                            var host = await Dns.GetHostEntryAsync(reply.Address);
+
+                            hostname = host.HostName;
+                        }
+                        catch
+                        {
+                            //ignore    
+                        }
+                        devices.Add(new NetworkDevice(reply.Address, reply.RoundtripTime, hostname));
+                    }
+                });
+            }
+            await Task.WhenAll(tasks);
+        }
+
+        await AvailableDevices(NewMethod);
+
+        return devices;
+    }
 }
 
 public record DeviceInfo(IPAddress Address, string Id, string Version, IPStatus Status);
+
+public record NetworkDevice(IPAddress Address, long RoundtripTime, string HostName);
 
 public class DeviceSpecs
 {

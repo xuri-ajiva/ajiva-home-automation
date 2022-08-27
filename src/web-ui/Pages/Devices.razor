@@ -1,49 +1,126 @@
 ﻿@page "/Devices"   
 @using web_ui.Services
 @using web_ui.Data
-@using AntDesign
-@using System.Text.Json
+@using System.Net
 
-@inject ConfirmService confirmService
-@inject DeviceService deviceService 
-@inject NavigationManager _navigationManager
+@inject NotificationService NotificationService
+@inject DeviceService DeviceService 
 
-@if (_devices is null)
+@if (_loading)
 {
-    <AntDesign.Button OnClick="LoadDevices">Load Devices</AntDesign.Button>
-    <AntDesign.Button OnClick="FetchDevices">Fetch Devices</AntDesign.Button>
-    <Input @bind-Value="_from" Placeholder="From"/>
-    <Input @bind-Value="_to" Placeholder="To"/>
+    <Spin Spinning="_loading">
+        <Alert
+            Message="Loading devices..."
+            Description="Waiting for scanning to complete..."
+            Type="info"/>
+    </Spin>
+    <Progress Percent="_percent" ShowInfo Status="ProgressStatus.Active"></Progress>
 }
 else
 {
+    <AntDesign.Button OnClick="LoadDevices">Update Devices</AntDesign.Button>
+    <AntDesign.Button OnClick="FetchDevices">Fetch Devices</AntDesign.Button>
+    <Divider/>
     <Table TItem="Device"
            DataSource="_devices"
+           Size="TableSize.Small"
+           PageSize="50"
            Bordered>
         <ChildContent>
-            <Column @bind-Field="context.Name"></Column>
-            <Column @bind-Field="context.Description"></Column>
-            <Column @bind-Field="context.DeviceId"></Column>
+            <Column @bind-Field="context.DeviceId" Width="120" Sortable Filterable></Column>
+            <Column @bind-Field="context.Name">
+                @if (_editing.Contains(context.DeviceId))
+                {
+                    <Input @bind-Value="context.Name" Placeholder="Name"/>
+                }
+                else
+                {
+                    @context.Name
+                }
+            </Column>
+            <Column @bind-Field="context.Description">
+                @if (_editing.Contains(context.DeviceId))
+                {
+                    <Input @bind-Value="context.Description" Placeholder="Description"/>
+                }
+                else
+                {
+                    @context.Description
+                }
+            </Column>
+            <Column @bind-Field="context.LastSeen" Width="150" Sortable Filterable></Column>
+            <Column @bind-Field="context.Added" Width="150" Sortable Filterable></Column>
+            <Column @bind-Field="context.Version" Width="0" Sortable Filterable></Column>
+            <Column TData="string" Title="IpAddress" Width="0">@(new IPAddress(context.IPAddress).ToString())</Column>
+            <ActionColumn Title="Action">
+                @if (!_editing.Contains(context.DeviceId))
+                {
+                    <Button Type="@ButtonType.Link" OnClick="() => _editing.Add(context.DeviceId)">Edit</Button>
+                }
+                else
+                {
+                    <Button Type="@ButtonType.Link" OnClick="() => Save(context)">Save</Button>
+                    <Button Type="@ButtonType.Link" OnClick="() => Cancel(context)">Cancel</Button>
+                }
+            </ActionColumn>
         </ChildContent>
     </Table>
 }
 
-
 @code {
 
     List<Device>? _devices;
-    string _from;
-    string _to;
+    HashSet<string> _editing = new();
 
     private async Task LoadDevices()
     {
-        _devices = await deviceService.GetDevices();
+        _devices = await DeviceService.GetDevices();
+        _editing.Clear();
+        StateHasChanged();
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LoadDevices();
     }
 
     private async Task FetchDevices()
     {
-        var found = await deviceService.IndexNetworkDevices(_from, _to);
-        await confirmService.Show(JsonSerializer.Serialize(found), "test");
+        _loading = true;
+        StateHasChanged();
+        var found = await DeviceService.IndexNetworkDevices(update =>
+        {
+            _percent = Math.Round(update * 100, 2);
+            InvokeAsync(StateHasChanged);
+        });
+        await NotificationService.Success(new NotificationConfig() {
+            Message = "Scan Complete",
+            Description = $"Found {found.Found} devices, New {found.New} devices, Updated {found.Updated} devices",
+        });
+        _loading = false;
+        StateHasChanged();
+        await LoadDevices();
+    }
+
+    private bool _loading;
+    private double _percent = 0;
+
+    private async Task Save(Device context)
+    {
+        _editing.Remove(context.DeviceId);
+        await DeviceService.UpdateDevice(context);
+        await NotificationService.Success(new NotificationConfig() {
+            Message = "Device Updated",
+            Description = $"{context.Name} updated",
+        });
+        await LoadDevices();
+    }
+
+    private async Task Cancel(Device context)
+    {
+        _editing.Remove(context.DeviceId);
         await LoadDevices();
     }
 
