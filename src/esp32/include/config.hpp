@@ -5,17 +5,18 @@
 #include "json_generator.h"
 #include <ArduinoJson.hpp>
 #include <utility>
+#include <numeric>
 
 using namespace ArduinoJson;
 
 class WifiData {
 public:
-    WifiData(String ssid, String password) :
-            ssid(std::move(ssid)), password(std::move(password)) {}
+    WifiData(String ssid, String password) : ssid(std::move(ssid)), password(std::move(password)) {}
 
 private:
     String ssid;
     String password;
+
 public:
     const char *getSsid() const {
         return ssid.c_str();
@@ -26,37 +27,180 @@ public:
     }
 };
 
+typedef enum {
+    IoType_Write = 1,
+    IoType_Read = 2,
+    IoType_Pulse = 3,
+} IoType;
+
 class IoData {
     String name;
-    uint8_t pin;
-    uint8_t mode;
 
-    uint8_t m_state;
+    struct pinStateMode {
+        uint8_t mode;
+        uint8_t pin;
+        uint8_t state;
+
+        pinStateMode(uint8_t mode, uint8_t pin, uint8_t state) : mode(mode), pin(pin), state(state) {}
+    };
+
+    union {
+        pinStateMode pin;
+        pinStateMode trigger;
+    };
+    union {
+        pinStateMode pin2;
+        pinStateMode echo;
+    };
+    IoType type;
+    long pulseLength;
+    double convert;
+    String unit;
+
+    double m_Pulse() {
+        if (type == IoType_Pulse) {
+            digitalWrite(trigger.pin, LOW);
+            delay(pulseLength);
+            digitalWrite(trigger.pin, HIGH);
+            delayMicroseconds(pulseLength);
+            digitalWrite(trigger.pin, LOW);
+            auto duration = pulseIn(echo.pin, HIGH);
+            return duration * convert;
+        } else {
+            logger.println(String("[CONFIG] Waring: Pulse called on non-pulse type: ") + String(type));
+            return 0;
+        }
+    }
+
 public:
-    IoData(String name, uint8_t pin, uint8_t mode) :
-            name(std::move(name)), pin(pin), mode(mode), m_state(LOW) {}
+    explicit IoData(JsonObject &json) {
+        String n = json["name"];
+        name = std::move(n);
+        type = static_cast<IoType>(json["type"]);
+
+        switch (type) {
+            case IoType_Write: {
+                pin = pinStateMode(OUTPUT, json["pin"], json["state"]);
+                break;
+            }
+            case IoType_Read: {
+                pin = pinStateMode(INPUT, json["pin"], json["state"]);
+                break;
+            }
+            case IoType_Pulse: {
+                echo = pinStateMode(INPUT, json["echo"], LOW);
+                trigger = pinStateMode(OUTPUT, json["trigger"], LOW);
+                pulseLength = json["pulseLength"];
+                convert = json["convert"];
+                String u = json["unit"];
+                unit = std::move(u);
+                break;
+            }
+            default: {
+                logger.println("[CONFIG] Warning: Unknown type: " + String(type));
+                break;
+            }
+        }
+    }
+
+    double Pulse(int &count, std::vector<double> &buffer, double &mean, double &stDev) {
+        //perform the pulse count times
+        //use normal distribution to smooth out the results
+        for (int i = 0; i < count; i++) {
+            auto value = m_Pulse();
+            //if the value is < 0.01 then it is invalid
+            if (value < 0.01) {
+                continue;
+            }
+            //if the value is > 500 then it is invalid
+            if (value > 500) {
+                continue;
+            }
+            buffer.push_back(value);
+        }
+        //discard values that are 95% of the mean
+        mean = std::accumulate(buffer.begin(), buffer.end(), 0.0) / buffer.size();
+        stDev = std::accumulate(buffer.begin(), buffer.end(), 0.0, [mean](double sum, double val) {
+            return sum + std::pow(val - mean, 2);
+        }) / count;
+        stDev = std::sqrt(stDev);
+        double result = 0;
+        int countValid = 0;
+        for (auto &val : buffer) {
+            if (val >= mean - stDev * 1.5 && val <= mean + stDev * 1.5) {
+                result += val;
+                countValid++;
+            }
+        }
+        result /= countValid;
+        count = countValid;
+        return result;
+    }
+
 
     const String &getName() const {
         return name;
     }
 
-    uint8_t getPin() const {
-        return pin;
-    }
-
-    uint8_t getMode() const {
-        return mode;
+    IoType getType() const {
+        return type;
     }
 
     void Write(uint8_t val) {
-        m_state = val;
-        digitalWrite(pin, val);
+        if (type == IoType_Write) {
+            pin.state = val;
+            digitalWrite(pin.pin, val);
+            logger.println(String("[CONFIG] Write: ") + String(val) + String(" to pin: ") + String(pin.pin));
+        } else {
+            logger.println(String("[WARNING] Write called on non-write type: ") + String(type));
+        }
+    }
+
+    uint8_t Read() {
+        if (type == IoType_Read) {
+            return digitalRead(pin.pin);
+        } else {
+            return pin.state;
+        }
+    }
+
+
+    String PulseConvert(double duration) {
+        if (type == IoType_Pulse) {
+            return String(duration) + " (" + unit + ")";
+        } else {
+            logger.println(String("[CONFIG] Waring: Pulse called on non-pulse type: ") + String(type));
+            return "WRING CONFIG";
+        }
     }
 
     void Configure() {
-        pinMode(pin, mode);
-        digitalWrite(pin, m_state);
-        logger.println("[CONFIG] IoData: " + name + ": on PIN: " + String(pin) + " with Mode " + String(mode));
+        switch (type) {
+            case IoType_Write:
+            case IoType_Read: {
+                pinMode(pin.pin, pin.mode);
+                digitalWrite(pin.pin, pin.state);
+                logger.println("[CONFIGURING] '" + name + "' on pin " + String(pin.pin));
+                break;
+            }
+            case IoType_Pulse: {
+                pinMode(echo.pin, echo.mode);
+                digitalWrite(echo.pin, echo.state);
+                pinMode(trigger.pin, trigger.mode);
+                digitalWrite(trigger.pin, trigger.state);
+                logger.println("[CONFIGURING] '" + name + "' as pulse on echo pin " + String(echo.pin) +
+                               " and trigger pin " + String(trigger.pin));
+                break;
+            }
+            default: {
+                logger.println("[CONFIGURING] Warning: Unknown type: " + String(type));
+                break;
+            }
+        }
+    }
+
+    const String &getUnit() const {
+        return unit;
     }
 };
 
@@ -70,8 +214,8 @@ class Config {
         //        "password": "MyPassword"
         //    },
         //    "io": [
-        //        { "name": "led1", "pin": 2, "mode": 3 },
-        //        { "name": "led2", "pin": 0, "mode": 3 }
+        //        { "type": 1, "name": "led1", "pin": 2 },
+        //        { "type": 3, "name": "sensor1", "echo": 14, "trigger": 12, "pulseLength": 10, "convert": 0.017, "unit": "cm" }
         //    ],
         //    "specs": {
         //        "max_temp": 30,
@@ -90,11 +234,7 @@ class Config {
         // Parse io data
         JsonArray io = doc["io"];
         for (JsonObject i: io) {
-            ioData.emplace_back(
-                    i["name"],
-                    int8_t(i["pin"]),
-                    int8_t(i["mode"])
-            );
+            ioData.emplace_back(i);
         }
 
         for (IoData i: ioData) {
@@ -109,13 +249,15 @@ class Config {
     }
 
     bool m_init = false;
+
 public:
     WifiData wifi = WifiData("", "");
     std::vector<IoData> ioData;
 
     bool Load(const char *path) {
         logger.println("[CONFIG] Loading config from " + String(path));
-        if (!file.Init()) return false;
+        if (!file.Init())
+            return false;
         String content;
 
         if (!file.Read((String(path) + ("/config.json")).c_str(),
