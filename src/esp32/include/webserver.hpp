@@ -7,25 +7,35 @@
 #include "specs.h"
 #include "config.hpp"
 #include "network.hpp"
+#include "ArduinoJson.hpp"
+#include "json_generator.h"
+
+using namespace ArduinoJson;
 
 class WebserverWrapper {
     bool m_init;
     // Set web server port number to 80
     AsyncWebServer server = AsyncWebServer(80);
 
+
     void LoadFromConfig() {
         for (auto &item: config.ioData) {
-            switch (item.getMode()) {
-                case OUTPUT: {
-                    String url = String("/api/io/device/") + item.getName();
-                    server.on(url.c_str(), HTTP_POST, HandleStateChange(item));
+            String url = String("/api/io/device/") + item.getName();
+            switch (item.getType()) {
+                case IoType_Write: {
+                    server.on(url.c_str(), HTTP_GET, HandleStateChange(item));
                     break;
                 }
-                case INPUT:
-                    logger.println("Input not implemented yet");
+                case IoType_Read: {
+                    server.on(url.c_str(), HTTP_GET, HandleStateRead(item));
                     break;
+                }
+                case IoType_Pulse: {
+                    server.on(url.c_str(), HTTP_GET, HandlePulse(item));
+                    break;
+                }
                 default:
-                    logger.println("Unknown mode: " + String(item.getMode()));
+                    logger.println("Unknown mode: " + String(item.getType()));
                     break;
             }
         }
@@ -61,6 +71,49 @@ class WebserverWrapper {
         };
     }
 
+    static ArRequestHandlerFunction HandlePulse(IoData &item) {
+        return [&item](AsyncWebServerRequest *request) {
+            using namespace ArduinoJson;
+            int count;
+            if (request->hasParam("count")) {
+                count = request->getParam("count")->value().toInt();
+                if (count < 1 || count > 32) {
+                    request->send(400, "text/plain", "Invalid count");
+                    return;
+                }
+            } else {
+                count = 8;
+            }
+            double mean, stDev;
+            std::vector<double> buffer;
+            auto valid = count;
+            auto value = item.Pulse(valid, buffer, mean, stDev);
+            auto converted = item.PulseConvert(value);
+            StaticJsonDocument<1024> doc;
+            doc["value"] = converted;
+            doc["raw"] = value;
+            doc["unit"] = item.getUnit();
+            doc["count"] = count;
+            doc["mean"] = mean;
+            doc["stDev"] = stDev;
+            doc["valid"] = valid;
+            auto jBuffer = doc.createNestedArray("values");
+            for (auto &val: buffer) {
+                jBuffer.add(val);
+            }
+            String json;
+            serializeJson(doc, json);
+            request->send(200, "application/json", json);
+        };
+    }
+
+    static ArRequestHandlerFunction HandleStateRead(IoData &item) {
+        return [&item](AsyncWebServerRequest *request) {
+            auto state = item.Read();
+            request->send(200, "application/json", R"({"state":")" + String(state) + R"("})");
+        };
+    }
+
 public:
     inline bool Init() {
         if (m_init)
@@ -85,7 +138,7 @@ public:
 
         server.on("/api/info", HTTP_GET, [](AsyncWebServerRequest *request) {
             request->send(200, "application/json",
-                          String(R"({ "chipId" : ")") + chipId() + "\", \"version\" : \"" VERSION "\" }");
+                          String(R"({"chipId":")") + chipId() + R"(","version":")" VERSION R"("})");
         });
 
         server.on("/api/device/id", HTTP_GET,
@@ -94,8 +147,8 @@ public:
         server.on("/api/logs", HTTP_GET,
                   [](AsyncWebServerRequest *request) { request->send(200, "text/plain", logger.Data()); });
 
-        server.on("/test", HTTP_GET,
-                  [](AsyncWebServerRequest *request) { request->send(200, "text/plain", "working :)"); });
+        server.on("/ping", HTTP_GET,
+                  [](AsyncWebServerRequest *request) { request->send(200, "text/plain", "pong"); });
 
         LoadFromConfig();
 
