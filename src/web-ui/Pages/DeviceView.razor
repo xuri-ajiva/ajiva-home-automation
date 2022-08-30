@@ -1,0 +1,34 @@
+﻿@page "/DeviceView/{DeviceId}"    
+@using web_ui.Services
+@using web_ui.Data
+@inject DeviceService _deviceService
+@if (_device is null)
+{
+    <Alert Type="@AlertType.Error">Das Gerät konnte nicht gefunden werden.</Alert>
+}
+else
+{
+    <h3>@_device.Name</h3>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 2em">
+        @foreach (var apparatus in _device.Apparatus)
+        {
+            <Apparatus Value="apparatus"/>
+        }
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public string DeviceId { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _device = await _deviceService.GetDevice(DeviceId, true);
+    }
+
+    private Device? _device;
+}
