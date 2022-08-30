@@ -40,20 +40,17 @@ class WebserverWrapper {
             }
         }
         server.on("/api/io/list", HTTP_GET, [](AsyncWebServerRequest *request) {
-            String urls = "{\"devices\":[";
-            bool first = true;
-            for (auto &item: config.ioData) {
-                if (first) {
-                    first = false;
-                } else {
-                    urls += ",";
-                }
-                urls += "\"";
-                urls += item.getName();
-                urls += "\"";
+            StaticJsonDocument<1024> doc;
+            doc["route"] = "/api/io/device/{name}";
+            auto jBuffer = doc.createNestedArray("devices");
+            for (auto &val: config.ioData) {
+                auto ele = jBuffer.addElement();
+                ele["name"] = val.getName();
+                ele["type"] = val.getType();
             }
-            urls += "]}";
-            request->send(200, "application/json", urls);
+            String json;
+            serializeJson(doc, json);
+            request->send(200, "application/json", json);
         });
     }
 
