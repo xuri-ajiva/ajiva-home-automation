@@ -12,10 +12,11 @@
     <link href="css/site.css" rel="stylesheet"/>
     <link href="web-ui.styles.css" rel="stylesheet"/>
 
-    <link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="_content/AntDesign/css/ant-design-blazor.dark.css">
+    @*<link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet"/>*@
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered"/>
 </head>
-<body>
+<body data-theme="dark">
 @RenderBody()
 
 <div id="blazor-error-ui">
