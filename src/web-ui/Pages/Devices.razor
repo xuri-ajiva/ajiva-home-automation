@@ -20,6 +20,7 @@ else
 {
     <AntDesign.Button OnClick="LoadDevices">Update Devices</AntDesign.Button>
     <AntDesign.Button OnClick="FetchDevices">Fetch Devices</AntDesign.Button>
+    <AntDesign.Button OnClick="FetchData">Fetch Data</AntDesign.Button>
     <Divider/>
     <Table TItem="Device"
            DataSource="_devices"
@@ -52,6 +53,7 @@ else
             <Column @bind-Field="context.Added" Width="150" Sortable Filterable></Column>
             <Column @bind-Field="context.Version" Width="0" Sortable Filterable></Column>
             <Column TData="string" Title="IpAddress" Width="0">@(new IPAddress(context.IPAddress).ToString())</Column>
+            <Column TData="string" Title="Link" Width="0"><a href="DeviceView/@context.DeviceId">Open</a></Column>
             <ActionColumn Title="Action">
                 @if (!_editing.Contains(context.DeviceId))
                 {
@@ -122,6 +124,11 @@ else
     {
         _editing.Remove(context.DeviceId);
         await LoadDevices();
+    }
+
+    private Task FetchData()
+    {
+        return DeviceService.PingDevices();
     }
 
 }

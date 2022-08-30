@@ -93,7 +93,7 @@
                 _device = uDevice;
             }
 
-            if (await ScanService.GetDeviceInfo(address!) is not null)
+            if (await ScanService.IsAvailable(address!))
             {
                 _device.LastSeen = DateTime.Now;
             }
