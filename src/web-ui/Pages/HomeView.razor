@@ -1,5 +1,4 @@
 ﻿@page "/home"
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using web_ui.Data
 @using web_ui.Services
 @inject DeviceService DeviceService 
@@ -11,9 +10,6 @@
         <DeviceWidget DeviceId="@deviceId"></DeviceWidget>
     }
 </CardGrid>
-<Divider></Divider>
-
-<Devices></Devices>
 
 @code {
 
