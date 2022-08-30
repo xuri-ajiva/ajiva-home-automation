@@ -3,19 +3,22 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using web_ui.Data;
 
 namespace web_ui.Services;
 
 public class ScanService
 {
     private ILogger<ScanService> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private byte[] start;
     private byte[] end;
 
-    public ScanService(ILogger<ScanService> logger, IConfiguration configuration)
+    public ScanService(ILogger<ScanService> logger, IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
         _configuration = configuration.GetSection("Scan");
         start = _configuration["Start"].Split('.').Select(byte.Parse).ToArray();
         end = _configuration["End"].Split('.').Select(byte.Parse).ToArray();
@@ -65,21 +68,38 @@ public class ScanService
         }
     }
 
+    public async ValueTask<bool> IsAvailable(IPAddress ip)
+    {
+        var reply = await new Ping().SendPingAsync(ip);
+        return reply.Status == IPStatus.Success;
+    }
     public async Task<DeviceInfo?> GetDeviceInfo(IPAddress address)
     {
         var reply = await new Ping().SendPingAsync(address);
         _logger.LogTrace("Sending Ping to {Address}", address);
         if (reply.Status != IPStatus.Success)
             return null;
-        if (await GetDeviceSpecs(reply.Address) is not { } specData)
-            return null;
-        if (JsonSerializer.Deserialize<DeviceSpecs>(specData) is not { } specs)
+        if (await GetDeviceSpecs(reply.Address) is not { } specs)
             return null;
         _logger.LogInformation("Received specs from {Address}", address);
         return new DeviceInfo(reply.Address, specs.ChipId, specs.Version, reply.Status);
     }
 
-    public async Task<string?> GetDeviceSpecs(IPAddress address)
+    public async Task<ApiDeviceRoutes?> GetDeviceRoutes(IPAddress address)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        try
+        {
+            var response = await httpClient.GetAsync($"http://{address}/api/io/list");
+            return await response.Content.ReadFromJsonAsync<ApiDeviceRoutes>();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<ApiDeviceSpecs?> GetDeviceSpecs(IPAddress address)
     {
         var client = new HttpClient();
         try
@@ -91,8 +111,7 @@ public class ScanService
             var response = await client.GetAsync(uri);
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                return content;
+                return await response.Content.ReadFromJsonAsync<ApiDeviceSpecs>();
             }
             return null;
         }
@@ -149,17 +168,25 @@ public class ScanService
 
         return devices;
     }
+
+    public async Task<ApiApparatusData?> GetSensorData(IPAddress ip, string deviceRoute, string name, DeviceApparatus deviceApparatus)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        try
+        {
+            var response = await httpClient.GetAsync($"http://{ip}{deviceRoute.Replace("{name}", name)}");
+            return await response.Content.ReadFromJsonAsync<ApiApparatusData>();
+        }
+        catch
+        {
+            return null;
+        }
+        
+    }
+
 }
 
 public record DeviceInfo(IPAddress Address, string Id, string Version, IPStatus Status);
 
 public record NetworkDevice(IPAddress Address, long RoundtripTime, string HostName);
 
-public class DeviceSpecs
-{
-    [JsonPropertyName("chipId")]
-    public string ChipId { get; set; }
-
-    [JsonPropertyName("version")]
-    public string Version { get; set; }
-}

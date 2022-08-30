@@ -19,6 +19,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddAntDesign();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+builder.Services.AddHttpClient<ScanService>();
 builder.Services.AddScoped<ScanService>();
 builder.Services.AddScoped<DeviceService>();
 builder.Services.AddHostedService<BackgroundDiscoverService>();
