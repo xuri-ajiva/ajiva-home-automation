@@ -1,0 +1,144 @@
+﻿@using web_ui.Data
+@using AntDesign.Charts
+@using OneOf
+@using web_ui.Services
+
+@inject DeviceService deviceService 
+
+@if (Value is null)
+{
+    <Card Style="width: 10em; height: 10em" Size="small">
+        <Body>
+        <Alert Type="@AlertType.Warning">No Apparatus</Alert>
+        </Body>
+    </Card>
+}
+else
+{
+    @if (Value.Type == IoType.Write)
+    {
+        <Card Style="" Title="@Value.Name" Size="small">
+            <div style="width: 15em; height: 15em;gap: 2em; display: flex; justify-content: center; align-items: center; flex-direction: column">
+                <Button OnClick="() => Trigger(true)">Trigger HIGH</Button>
+                <Button OnClick="() => Trigger(false)">Trigger LOW</Button>
+            </div>
+        </Card>
+    }
+    else
+    {
+        <Card Style="width: 40em; height: calc(400px + 5em)" Title="@Value.Name" Size="small">
+            <AntDesign.Charts.Line Data="data" Config="_config"/>
+        </Card>
+    }
+}
+
+<Modal Visible="_confirm" OnOk="Send" OnCancel="() => _confirm = false"
+       OkText="@(_confirmed ? "Close" : "Confirm")">
+    <ChildContent>
+        @if (_confirmed)
+        {
+            @if (_error)
+            {
+                <Result
+                    Status="error"
+                    Title="Submission Failed"
+                    SubTitle="Check Device Online Status / Update Device Information"/>
+            }
+            else
+            {
+                <Result Status="success"
+                        Title="Successfully Send"
+                        SubTitle="@($"Value.Name should be now {_request}")"/>
+            }
+        }
+        else
+        {
+            <Result Status="warning"
+                    Title="@($"Are you sure you want to trigger the {Value.Name}?")"
+                    SubTitle="@($"This will Send {_request} to {Value.Name}")"/>
+        }
+
+
+        @if (_progress)
+        {
+            <Icon Type="sync" Theme="outline" Spin/>
+        }
+    </ChildContent>
+</Modal>
+
+@code
+{
+    private async Task Send()
+    {
+        if (_confirmed)
+        {
+            _confirm = false;
+            return;
+        }
+
+        _progress = true;
+        StateHasChanged();
+        _error = !await deviceService.SetValue(Value, _request);
+        _confirmed = true;
+        _progress = false;
+        StateHasChanged();
+    }
+
+    public void Trigger(bool on)
+    {
+        _confirmed = false;
+        _request = on;
+        _confirm = true;
+        StateHasChanged();
+    }
+
+    [Parameter]
+    public DeviceApparatus? Value { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        if (Value is null)
+            return;
+        if (Value.Type == IoType.Write) return;
+
+        var rawData = await deviceService.GetApparatusData(Value, DateTime.Now.AddDays(-5), DateTime.Now.AddDays(5));
+
+        data = rawData.Select(x => new {
+            time = x.Time.ToString("O"),
+            value = x.Raw
+        }).ToList();
+        Console.WriteLine("got data: " + rawData.Count);
+        Console.WriteLine("Apparatus: " + Value.Name);
+    }
+
+    object data = new();
+
+    private LineConfig _config = new LineConfig() {
+        ForceFit = true,
+        XField = "time",
+        YField = "value",
+        Smooth = true,
+        XAxis = new ValueCatTimeAxis {
+            Type = "dateTime",
+            TickCount = 5,
+        },
+        Label = new Label {
+            Type = "line",
+            Visible = true,
+        },
+        Animation = new Animation {
+            Appear = new AnimationCfg {
+                Animation = "clipingWithData",
+                Duration = 3,
+            },
+        },
+    };
+    bool _request = false;
+
+    private bool _confirm = false;
+    private bool _progress;
+    private bool _confirmed;
+    private bool _error;
+}
