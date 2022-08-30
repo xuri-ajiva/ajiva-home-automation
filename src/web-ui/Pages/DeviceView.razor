@@ -1,6 +1,9 @@
 ﻿@using web_ui.Services
 @using web_ui.Data
+@using System.Net
+@using System.Diagnostics
 @inject DeviceService deviceService;   
+@inject ScanService ScanService;   
 @implements IDisposable
 
 <Card Style="width:300px;" Bordered>
@@ -21,7 +24,7 @@
         <div style="height: 300px; display: flex; flex-direction: column;justify-items: center;align-items: center">
             @if (_device is not null)
             {
-                <h5 style="margin-top: -0.5em">@_device.Description</h5> 
+                <h5 style="margin-top: -0.5em">@_device.Description</h5>
                 <Divider Style="margin: 0.7em 0"></Divider>
                 <div style="display: grid; justify-items: center; flex: 0 1; min-height: 70px">
                     @if ((_device.LastSeen - DateTime.Now).Duration() < TimeSpan.FromHours(1))
@@ -72,14 +75,29 @@
 
     async void RunTimer()
     {
+        IPAddress? address = null;
+
         await Task.Delay(100);
         do
         {
-            _device = await deviceService.GetDevice(DeviceId);
-            if (_device is null)
+            var uDevice = await deviceService.GetDevice(DeviceId);
+            if (uDevice is null)
             {
                 _notFound = true;
+                continue;
             }
+
+            if (_device != uDevice)
+            {
+                address = new IPAddress(uDevice.IPAddress);
+                _device = uDevice;
+            }
+
+            if (await ScanService.GetDeviceInfo(address!) is not null)
+            {
+                _device.LastSeen = DateTime.Now;
+            }
+
             _lastUpdated = DateTime.Now;
             StateHasChanged();
         } while (await _periodicTimer.WaitForNextTickAsync());
