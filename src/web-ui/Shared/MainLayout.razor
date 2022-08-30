@@ -1,20 +1,46 @@
 ﻿@inherits LayoutComponentBase
 
 <PageTitle>web-ui</PageTitle>
+<Layout Class="page">
+    <Sider Collapsible Collapsed="_collapsed">
+        <div class="logo" style="height: 32px; margin: 16px; width: 200px; font-size: 1.3em;">Ajiva Home Automation</div>
+        <Menu Mode="MenuMode.Inline">
+            <MenuItem RouterMatch="NavLinkMatch.All" RouterLink="/">
+                <Icon Type="home" Theme="outline"/>
+                <span>Index</span>
+            </MenuItem>           
+            <MenuItem RouterLink="/home">
+                <Icon Type="home" Theme="outline"/>
+                <span>Home</span>
+            </MenuItem>
+            <MenuItem RouterLink="/Devices">
+                <Icon Type="video-camera" Theme="outline"/>
+                <span>Devices</span>
+            </MenuItem>
+        </Menu>
+    </Sider>
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu/>
-    </div>
+    <Layout Class="site-layout" Style="height: 100vh">
+        <Header>
+            <div style="gap: 2em; justify-content: flex-end; display: flex;align-items: center;">
+                <LoginDisplay/>
+                <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+            </div>
+        </Header>
+        <Content Style="margin:16px;">
+            <article>
+                @Body
+            </article>
+        </Content>
+        @*<Content Class="" Style="margin: 24px 16px;padding: 24px;min-height: 280px;">
+        </Content>*@
+        <Footer Style="text-align:center ">Ajiva Home Ahtomation ©2022 Created by Xuri Ajiva</Footer>
+    </Layout>
 
-    <main>
-        <div class="top-row px-4 auth">
-            <LoginDisplay/>
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
-        </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+</Layout>
+
+@code
+{
+    bool _collapsed = false;
+}
