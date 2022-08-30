@@ -14,7 +14,7 @@ public class ApplicationDbContext : IdentityDbContext
 
     public DbSet<Device> Devices { get; set; }
     public DbSet<DeviceConfig> DeviceConfigs { get; set; }
-    public DbSet<DeviceApparatus> DeviceDevices { get; set; }
+    public DbSet<DeviceApparatus> DeviceApparatus { get; set; }
     public DbSet<ApparatusData> ApparatusData { get; set; }
 }
 public class Device
@@ -58,6 +58,7 @@ public class ApparatusData
 {
     public long Id { get; set; }
     public double Raw { get; set; }
+    public DateTime Time { get; set; }
 
     public DeviceApparatus Apparatus { get; set; }
 }
