@@ -1,14 +1,14 @@
 ﻿namespace web_ui.Services;
 
-public class BackgroundScanService : BackgroundService
+public class BackgroundDiscoverService : BackgroundService
 {
-    private readonly ILogger<BackgroundScanService> _logger;
+    private readonly ILogger<BackgroundDiscoverService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
 
     /// <inheritdoc />
-    public BackgroundScanService(
-        ILogger<BackgroundScanService> logger,
+    public BackgroundDiscoverService(
+        ILogger<BackgroundDiscoverService> logger,
         IConfiguration configuration,
         IServiceProvider serviceProvider)
     {

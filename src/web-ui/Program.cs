@@ -21,7 +21,7 @@ builder.Services.AddAntDesign();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 builder.Services.AddScoped<ScanService>();
 builder.Services.AddScoped<DeviceService>();
-builder.Services.AddHostedService<BackgroundScanService>();
+builder.Services.AddHostedService<BackgroundDiscoverService>();
 
 var app = builder.Build();
 
