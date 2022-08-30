@@ -90,7 +90,7 @@ else
     {
         _loading = true;
         StateHasChanged();
-        var found = await DeviceService.IndexNetworkDevices(update =>
+        var found = await DeviceService.DiscoverDevices(update =>
         {
             _percent = Math.Round(update * 100, 2);
             InvokeAsync(StateHasChanged);

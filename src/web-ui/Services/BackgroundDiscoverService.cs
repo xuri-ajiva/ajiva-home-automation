@@ -20,13 +20,15 @@ public class BackgroundDiscoverService : BackgroundService
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var timer = new PeriodicTimer(TimeSpan.Parse(_configuration["BackgroundScanService:ScanInterval"]));
+        var timer = new PeriodicTimer(TimeSpan.Parse(_configuration["BackgroundService:DiscoverInterval"]));
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             var scope = _serviceProvider.CreateScope();
-            var result = await scope.ServiceProvider
-                .GetRequiredService<DeviceService>()
-                .IndexNetworkDevices();
+            var deviceService = scope.ServiceProvider
+                .GetRequiredService<DeviceService>();
+
+            var result = await deviceService.DiscoverDevices();
+
             _logger.LogInformation("Scanned Network, Found {Found} Devices, New {New}, Updated {Updated}",
                 result.Found, result.New, result.Updated);
         }

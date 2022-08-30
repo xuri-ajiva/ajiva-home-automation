@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.NetworkInformation;
 using Microsoft.EntityFrameworkCore;
 using web_ui.Data;
 using web_ui.Pages;
@@ -21,7 +22,7 @@ public class DeviceService
         return await _context.Devices.ToListAsync();
     }
 
-    public async Task<IndexingResult> IndexNetworkDevices(Action<double>? updateProgress = null)
+    public async Task<IndexingResult> DiscoverDevices(Action<double>? updateProgress = null)
     {
         var devices = await _scanService.AvailableDevices(updateProgress);
         int found = 0, @new = 0, updated = 0;
@@ -56,6 +57,22 @@ public class DeviceService
 
         await _context.SaveChangesAsync();
         return new IndexingResult(found, @new, updated);
+    }
+
+    public async Task<IndexingResult> PingDevices(Action<double>? updateProgress = null)
+    {
+        int updated = 0;
+        await foreach (var device in _context.Devices)
+        {
+            if (await _scanService.GetDeviceInfo(new IPAddress(device.IPAddress)) is { Status: IPStatus.Success } info)
+            {
+                device.Version = info.Version;
+                device.LastSeen = DateTime.Now;
+                updated++;
+            }
+        }
+        await _context.SaveChangesAsync();
+        return new IndexingResult(updated, 0, updated);
     }
 
     public async Task UpdateDevice(Device context)
