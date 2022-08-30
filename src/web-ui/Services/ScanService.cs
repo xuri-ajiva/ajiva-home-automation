@@ -73,6 +73,7 @@ public class ScanService
         var reply = await new Ping().SendPingAsync(ip);
         return reply.Status == IPStatus.Success;
     }
+
     public async Task<DeviceInfo?> GetDeviceInfo(IPAddress address)
     {
         var reply = await new Ping().SendPingAsync(address);
@@ -181,12 +182,23 @@ public class ScanService
         {
             return null;
         }
-        
     }
 
+    public async Task<bool> SetValue(IPAddress ip, string deviceRoute, string name, bool on)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        try
+        {
+            var response = await httpClient.GetAsync($"http://{ip}{deviceRoute.Replace("{name}", name)}?Write={(on ? "HIGH" : "LOW")}");
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
 
 public record DeviceInfo(IPAddress Address, string Id, string Version, IPStatus Status);
 
 public record NetworkDevice(IPAddress Address, long RoundtripTime, string HostName);
-

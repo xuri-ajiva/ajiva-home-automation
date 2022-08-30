@@ -79,7 +79,7 @@ public class DeviceService
         {
             var apparatus = device.Apparatus.FirstOrDefault(x => x.Name == info.Name);
             if (apparatus is not null) continue;
-            
+
             apparatus = new DeviceApparatus {
                 Name = info.Name,
                 Type = (IoType)info.Type,
@@ -87,7 +87,7 @@ public class DeviceService
             };
             device.Apparatus.Add(apparatus);
         }
-        
+
         await _context.SaveChangesAsync();
     }
 
@@ -120,6 +120,7 @@ public class DeviceService
             var apparatusData = new ApparatusData {
                 Raw = rawData.Raw,
                 Apparatus = apparatus,
+                Time = DateTime.Now
             };
             apparatus.Unit = rawData.Unit;
             _context.ApparatusData.Add(apparatusData);
@@ -141,9 +142,28 @@ public class DeviceService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<Device?> GetDevice(string deviceId)
+    public async Task<Device?> GetDevice(string deviceId, bool includeApparatus = false)
     {
-        return await _context.Devices.FirstOrDefaultAsync(d => d.DeviceId == deviceId);
+        if (includeApparatus)
+        {
+            return await _context.Devices
+                .Include(x => x.Apparatus)
+                .FirstOrDefaultAsync(d => d.DeviceId == deviceId);
+        }
+        return await _context.Devices
+            .FirstOrDefaultAsync(d => d.DeviceId == deviceId);
+    }
+
+    public async Task<List<ApparatusData>> GetApparatusData(DeviceApparatus value, DateTime from, DateTime to)
+    {
+        return await _context.ApparatusData
+            .Where(x => x.Apparatus == value && x.Time >= from && x.Time <= to)
+            .ToListAsync();
+    }
+
+    public async Task<bool> SetValue(DeviceApparatus? apparatus, bool on)
+    {
+        return await _scanService.SetValue(new IPAddress(apparatus.Device.IPAddress), apparatus.Device.Route, apparatus.Name, on);
     }
 }
 
