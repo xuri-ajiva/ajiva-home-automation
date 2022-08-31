@@ -6,13 +6,29 @@
 @inject ScanService ScanService;   
 @implements IDisposable
 
-<Card Style="width:300px;" Bordered>
+<Card Style="width:26em;" Bordered>
 
     <TitleTemplate>
         @if (_device is not null)
         {
-            <div>
-                <h5 style="margin: 0">@_device.Name</h5>
+            <div style="display: flex; align-items: center; justify-items: center">
+                <div style="flex: 1; font-size: 1.3em">@_device.Name</div>
+                <div style="display: flex; gap: 1em; justify-items: center; align-items: center">
+                    @if (_online)
+                    {
+                        <Tooltip Title="@("Last Seen: " + _device.LastSeen)" Placement="Placement.Left">
+                            <span>Online</span>
+                        </Tooltip>
+                        <Icon Type="check-circle" Theme="@IconThemeType.Twotone" TwotoneColor="#52c41a" Height="1.7em" Width="1.7em"/>
+                    }
+                    else
+                    {
+                        <Tooltip Title="@("Last Seen: " + _device.LastSeen)" Placement="Placement.Left">
+                            <span>Offline</span>
+                        </Tooltip>
+                        <Icon Type="close-circle" Theme="@IconThemeType.Twotone" TwotoneColor="#f5222d" Height="1.7em" Width="1.7em"/>
+                    }
+                </div>
             </div>
         }
         else
@@ -21,30 +37,17 @@
         }
     </TitleTemplate>
     <ChildContent>
-        <div style="height: 300px; display: flex; flex-direction: column;justify-items: center;align-items: center">
+        <div style="min-height: 20em; display: flex; flex-direction: column;justify-items: center;align-items: center">
             @if (_device is not null)
             {
                 <h5 style="margin-top: -0.5em">@_device.Description</h5>
                 <Divider Style="margin: 0.7em 0"></Divider>
-                <div style="display: grid; justify-items: center; flex: 0 1; min-height: 70px">
-                    @if ((_device.LastSeen - DateTime.Now).Duration() < TimeSpan.FromHours(1))
-                    {
-                        <div style="display: grid; align-items: center; grid-template-columns: 1fr 1fr">
-                            <Icon Type="check-circle" Theme="twotone" TwotoneColor="#52c41a" Height="2em" Width="2em"/>
-                            <span>Online</span>
-                        </div>
-                    }
-                    else
-                    {
-                        <div style="display: grid; align-items: center; grid-template-columns: 1fr 1fr">
-                            <Icon Type="close-circle" Theme="twotone" TwotoneColor="#f5222d" Height="2em" Width="2em"/>
-                            <span>Offline</span>
-                        </div>
-                    }
-                    <Tooltip Title="@("Last Seen")" Placement="Placement.Left">
-                        <span>@_device.LastSeen</span>
-                    </Tooltip>
-                </div>
+                @foreach (var apparatus in _device.Apparatus)
+                {
+                    <Form Model="1" TModel="int">
+                        <Apparatus Value="apparatus" Minimal></Apparatus>
+                    </Form>
+                }
             }
             else
             {
@@ -55,6 +58,7 @@
     </ChildContent>
     <ActionTemplate>
         <h7>Updated @_lastUpdated</h7>
+        <a style="float: right; margin-right: 1em" href="DeviceView/@DeviceId">Open</a>
     </ActionTemplate>
 </Card>
 
@@ -73,6 +77,8 @@
         RunTimer();
     }
 
+    bool _online = false;
+
     async void RunTimer()
     {
         IPAddress? address = null;
@@ -80,7 +86,7 @@
         await Task.Delay(100);
         do
         {
-            var uDevice = await deviceService.GetDevice(DeviceId);
+            var uDevice = await deviceService.GetDevice(DeviceId, true);
             if (uDevice is null)
             {
                 _notFound = true;
@@ -93,10 +99,7 @@
                 _device = uDevice;
             }
 
-            if (await ScanService.IsAvailable(address!))
-            {
-                _device.LastSeen = DateTime.Now;
-            }
+            _online = await ScanService.IsAvailable(address!);
 
             _lastUpdated = DateTime.Now;
             StateHasChanged();
