@@ -11,10 +11,11 @@ else
     <h3>@_device.Name</h3>
 
     <div style="display: flex; flex-wrap: wrap; gap: 2em">
-        @foreach (var apparatus in _device.Apparatus)
-        {
-            <Apparatus Value="apparatus"/>
-        }
+        <AntList Split="true" Grid="new() { Gutter = 16, Xs = 1, Sm = 2, Md = 4, Lg = 4, Xl = 6, Xxl = 3,}" DataSource="@_device.Apparatus">
+            <ListItem>
+                <Apparatus Value="context"/>
+            </ListItem>
+        </AntList>
     </div>
 }
 
