@@ -15,24 +15,41 @@
 }
 else
 {
-    @if (Value.Type == IoType.Write)
+    @if (Minimal)
     {
-        <Card Style="" Title="@Value.Name" Size="small">
-            <div style="width: 15em; height: 15em;gap: 2em; display: flex; justify-content: center; align-items: center; flex-direction: column">
+        if (Value.Type == IoType.Write)
+        {
+            <FormItem Label="@Value.Name">
                 <Button OnClick="() => Trigger(true)">Trigger HIGH</Button>
                 <Button OnClick="() => Trigger(false)">Trigger LOW</Button>
-            </div>
-        </Card>
+            </FormItem>
+        }
+        else
+        {
+            <FormItem Label="@Value.Name">
+                <TinyArea Data="@data" Config="timesConfig"></TinyArea>
+            </FormItem>
+        }
     }
     else
     {
-        <Card Style="width: 40em; height: calc(400px + 5em)" Title="@Value.Name" Size="small">
-            <AntDesign.Charts.Line Data="data" Config="_config"/>
-        </Card>
+        @if (Value.Type == IoType.Write)
+        {
+            <Card Style="" Title="@Value.Name" Size="small">
+                <Button OnClick="() => Trigger(true)">Trigger HIGH</Button>
+                <Button OnClick="() => Trigger(false)">Trigger LOW</Button>
+            </Card>
+        }
+        else
+        {
+            <Card Style="width: 40em; height: calc(400px + 5em)" Title="@Value.Name" Size="small">
+                <Area Data="data" Config="_config"/>
+            </Card>
+        }
     }
 }
 
-<Modal Visible="_confirm" OnOk="Send" OnCancel="() => _confirm = false"
+<Modal Visible="_confirm" ConfirmLoading="@_progress" OnOk="Send" OnCancel="() => _confirm = false"
        OkText="@(_confirmed ? "Close" : "Confirm")">
     <ChildContent>
         @if (_confirmed)
@@ -56,12 +73,6 @@ else
             <Result Status="warning"
                     Title="@($"Are you sure you want to trigger the {Value.Name}?")"
                     SubTitle="@($"This will Send {_request} to {Value.Name}")"/>
-        }
-
-
-        @if (_progress)
-        {
-            <Icon Type="sync" Theme="outline" Spin/>
         }
     </ChildContent>
 </Modal>
@@ -95,6 +106,13 @@ else
     [Parameter]
     public DeviceApparatus? Value { get; set; }
 
+    [Parameter]
+    public bool Minimal { get; set; }
+
+    double average = 0;
+    double max = 0;
+    double min = 0;
+
     /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
@@ -102,39 +120,105 @@ else
         if (Value is null)
             return;
         if (Value.Type == IoType.Write) return;
+        
+        DateTime from;
+        DateTime to;
 
-        var rawData = await deviceService.GetApparatusData(Value, DateTime.Now.AddDays(-5), DateTime.Now.AddDays(5));
+        if (Minimal)
+        {
+            from = DateTime.Now.AddHours(-1);
+            to = DateTime.Now.AddHours(1);
+        }
+        else
+        {
+            from = DateTime.Now.AddDays(-5);
+            to = DateTime.Now.AddDays(5);
+        }
+
+        var rawData = await deviceService.GetApparatusData(Value, from, to);
+
+        average = rawData.Average(x => x.Raw);
+        max = rawData.Max(x => x.Raw);
+        min = rawData.Min(x => x.Raw);
 
         data = rawData.Select(x => new {
             time = x.Time.ToString("O"),
             value = x.Raw
         }).ToList();
-        Console.WriteLine("got data: " + rawData.Count);
-        Console.WriteLine("Apparatus: " + Value.Name);
+
+        timesConfig = new() {
+            Width = 200,
+            Height = 50,
+            XField = "time",
+            YField = "value",
+            GuideLine = new object[] {
+                new {
+                    Type = "mean",
+                    Text = new {
+                        Position = "start",
+                        Content = "Average: " + average.ToString("0.00"),
+                    }
+                }
+            }
+        };
+        _config = new() {
+            GuideLine = new[] {
+                new GuideLineConfig() {
+                    Type = "min", // "max" | "min" | "median" |  "mean"
+                    Text = new() {
+                        Content = "Min: " + min.ToString("0.00"),
+                        Style = new TextStyle() {
+                            Fill = "white",
+                            Stroke = "black"
+                        }
+                    }
+                },
+                new() {
+                    Type = "max", // "max" | "min" | "median" |  "mean"
+                    Text = new() {
+                        Content = "Max: " + max.ToString("0.00"),
+                        Style = new TextStyle() {
+                            Fill = "white",
+                            Stroke = "black"
+                        }
+                    },
+                },
+            },
+            XField = "time",
+            YField = "value",
+            Theme = "dark",
+            ForceFit = true,
+            Smooth = true,
+            Title = new() {
+                Text = $"Meshurement in {Value.Unit}",
+                Visible = true,
+            },
+            XAxis = new ValueCatTimeAxis {
+                Type = "dateTime",
+                TickCount = 100,
+            },
+            Animation = new Animation {
+                Appear = new AnimationCfg {
+                    Animation = "clipingWithData",
+                    Duration = 10,
+                },
+            },
+            Interactions = new[] {
+                new Interaction {
+                    Type = "slider",
+                    Cfg = new {
+                        start = 0.1,
+                        end = 0.2
+                    }
+                },
+            }
+        };
     }
 
     object data = new();
 
-    private LineConfig _config = new LineConfig() {
-        ForceFit = true,
-        XField = "time",
-        YField = "value",
-        Smooth = true,
-        XAxis = new ValueCatTimeAxis {
-            Type = "dateTime",
-            TickCount = 5,
-        },
-        Label = new Label {
-            Type = "line",
-            Visible = true,
-        },
-        Animation = new Animation {
-            Appear = new AnimationCfg {
-                Animation = "clipingWithData",
-                Duration = 3,
-            },
-        },
-    };
+    TinyAreaConfig timesConfig;
+    private AreaConfig _config;
     bool _request = false;
 
     private bool _confirm = false;
