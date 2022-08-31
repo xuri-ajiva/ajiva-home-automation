@@ -4,12 +4,12 @@
 @inject DeviceService DeviceService 
 
 
-<CardGrid>
+<Card>
     @foreach (var deviceId in _config.DeteiledDevices)
     {
         <DeviceWidget DeviceId="@deviceId"></DeviceWidget>
     }
-</CardGrid>
+</Card>
 
 @code {
 
